@@ -26,7 +26,5 @@ mongoose.connect(
   }
 );
 
-// set up routes
-
-// user routes
 app.use("/users", require('./routes/userRouter'));
+app.use("/products", require('./routes/productRouter'));
