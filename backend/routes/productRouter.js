@@ -17,33 +17,70 @@ connection.connect(function (err) {
 
 router.post("/search", (req, res) => {
     const { search } = req.body;
-    connection.query(`SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, history.date AS date products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire
-    FROM history INNER JOIN products ON history.product_id = products.id WHERE products.name='${search}' OR barcode='%${search}%'`, (err, result) => {
-        if (result.lenhth < 2) res.send(result);
-        else {
-            connection.query(`SELECT name, price FROM products WHERE name LIKE '%${search}%'`, (err, result) => {
-                if (err) res.status(404).send(msg = "Product not found");
-                else res.send(result);
-            })
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT * FROM products WHERE name LIKE ?`;
+        connection.query(sql, ["%" + search + "%"], (err, result) => {
+            if (err) reject(err);
+            else if (result.length === 0) reject("No results found");
+            resolve(result);
         }
-    })
+        );
+    }).then(result => {
+        if (result.length === 1) {
+            return new Promise((resolve, reject) => {
+                var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire FROM products INNER JOIN history ON history.products_id = products.id WHERE name = ? LIMIT 1`;
+                var inserts = [search];
+                connection.query(sql, inserts, (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                }
+                );
+            }).then(result => {
+                res.json(result);
+            }).catch(err => {
+                res.json(err);
+            });
+        }
+        else {
+            res.json(result);
+        }
+    }).catch(err => {
+        res.json(err);
+    });
 })
 
 router.post("/select", (req, res) => {
     const { search } = req.body;
-    connection.query(`SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, history.date AS date products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire
-    FROM history INNER JOIN products ON history.product_id = products.id WHERE products.name='${search}' OR barcode='%${search}%'`, (err, result) => {
-        if (err) res.status(404).send(msg = "Product not found");
-        else res.send(result);
-    })
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire FROM products INNER JOIN history ON history.products_id = products.id WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
+        var inserts = [search];
+        connection.query(sql, inserts, (err, result) => {
+            if (err) reject(err);
+            else if (result.length === 0) reject("No results found");
+            resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    });
 })
 
 router.post("/history", (req, res) => {
-    const { name} = req.body;
-    connection.query(`SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, history.date AS date FROM history INNER JOIN products ON history.products_id=products.id WHERE products.name='${name}'`, (err, result) => {
-        if (err) res.status(404).send(msg = "Product not found");
-        else res.send(result);
-    })
+    const { search } = req.body;
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date FROM history INNER JOIN products ON history.products_id = products.id WHERE name = ? ORDER BY history.date DESC`;
+        var inserts = [search];
+        connection.query(sql, inserts, (err, result) => {
+            if (err) reject(err);
+            else if (result.length === 0) reject("No results found");
+            resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    });
 })
 
 module.exports = router;
