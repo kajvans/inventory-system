@@ -18,7 +18,7 @@ connection.connect(function (err) {
 router.post("/search", (req, res) => {
     const { search } = req.body;
     return new Promise((resolve, reject) => {
-        var sql = `SELECT * FROM products WHERE name LIKE ?`;
+        var sql = `SELECT name, price FROM products WHERE name LIKE ?`;
         connection.query(sql, ["%" + search + "%"], (err, result) => {
             if (err) reject(err);
             else if (result.length === 0) reject("No results found");
@@ -28,7 +28,7 @@ router.post("/search", (req, res) => {
     }).then(result => {
         if (result.length === 1) {
             return new Promise((resolve, reject) => {
-                var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire FROM products INNER JOIN history ON history.products_id = products.id WHERE name = ? LIMIT 1`;
+                var sql = `SELECT products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire, history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date FROM products INNER JOIN history ON history.products_id = products.id WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
                 var inserts = [search];
                 connection.query(sql, inserts, (err, result) => {
                     if (err) reject(err);
@@ -52,7 +52,7 @@ router.post("/search", (req, res) => {
 router.post("/select", (req, res) => {
     const { search } = req.body;
     return new Promise((resolve, reject) => {
-        var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire FROM products INNER JOIN history ON history.products_id = products.id WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
+        var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire FROM products INNER JOIN history ON history.products_id = products.id WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
         var inserts = [search];
         connection.query(sql, inserts, (err, result) => {
             if (err) reject(err);
