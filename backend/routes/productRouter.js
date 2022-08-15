@@ -16,17 +16,34 @@ connection.connect(function (err) {
 });
 
 router.post("/search", (req, res) => {
-    //query is not correctly working only selects products when in history also first there must be a query for only the name of the product
-    //this is so that we can create buttons when a button is pressed than get the other information and the history of the current date
-    //when clicked on the history button show all the history from that product
     const { search } = req.body;
-    connection.query(`SELECT products.name, products.price, products.stock, products.location, products.barcode, history.sold, history.received 
-    from history INNER JOIN products ON history.Product_id=products.id WHERE products.name LIKE '%${search}%' OR products.barcode='${search}'`, (err, results) => {
-        if (err) {
-            return res.status(404).json({ msg: "No results found" });
+    connection.query(`SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, history.date AS date products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire
+    FROM history INNER JOIN products ON history.product_id = products.id WHERE products.name='${search}' OR barcode='%${search}%'`, (err, result) => {
+        if (result.lenhth < 2) res.send(result);
+        else {
+            connection.query(`SELECT name, price FROM products WHERE name LIKE '%${search}%'`, (err, result) => {
+                if (err) res.status(404).send(msg = "Product not found");
+                else res.send(result);
+            })
         }
-        return res.status(200).json(results);
-    });
+    })
+})
+
+router.post("/select", (req, res) => {
+    const { search } = req.body;
+    connection.query(`SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, history.date AS date products.id AS id, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire
+    FROM history INNER JOIN products ON history.product_id = products.id WHERE products.name='${search}' OR barcode='%${search}%'`, (err, result) => {
+        if (err) res.status(404).send(msg = "Product not found");
+        else res.send(result);
+    })
+})
+
+router.post("/history", (req, res) => {
+    const { name} = req.body;
+    connection.query(`SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, history.date AS date FROM history INNER JOIN products ON history.products_id=products.id WHERE products.name='${name}'`, (err, result) => {
+        if (err) res.status(404).send(msg = "Product not found");
+        else res.send(result);
+    })
 })
 
 module.exports = router;
