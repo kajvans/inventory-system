@@ -15,7 +15,7 @@ router.post("/register", async (req, res) => {
     if (!verified) return res.json(false);
 
     const user = await User.findById(verified.id);
-    if (!user) return res.json(false);
+    if (!user) return res.json("not logged in");
 
     if (!user.isAdmin) {res.status(401).json({msg: "Admin privileges required"}); return;}
       const { id, password, passwordCheck } = req.body;
