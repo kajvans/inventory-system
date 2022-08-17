@@ -136,5 +136,75 @@ router.post("/received", (req, res) => {
     });
 })
 
+router.get('/getnull', (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT name, stock, location FROM products WHERE stock < 1`;
+        connection.query(sql, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        }
+        );
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.get('/getexpire', (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT name, expire FROM products WHERE expire < DATE_ADD(CURDATE(),INTERVAL ${process.env.EXPIRE} DAY)`;
+        connection.query(sql, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        }
+        );
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.post('/getPrice', (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT price FROM products WHERE name = ?`;
+        var inserts = [req.body.name];
+        connection.query(sql, inserts, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.post('/delete', (req, res) => {
+    return new Promise((resolve, reject) => {
+        for(var i = 0; i < req.body.length; i++) {
+            const { name } = req.body[i];
+            var sql = `UPDATE products SET stock = stock - 1 WHERE name = ?`;
+            var inserts = [name];
+            connection.query(sql, inserts, (err, result) => {
+                if (err) reject(err);
+                else {
+                    var sql = `UPDATE history SET deleted = deleted + 1 WHERE products_name = ?`;
+                    var inserts = [name];
+                    connection.query(sql, inserts, (err, result) => {
+                        if (err) reject(err);
+                        else resolve(result);
+                    });
+                }
+            });
+        }
+    resolve("Success");
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    });
+})
 
 module.exports = router;
