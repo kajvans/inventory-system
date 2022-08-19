@@ -1,4 +1,5 @@
 const express = require("express");
+const dailyUpdate = require("./dailyUpdate");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
@@ -26,5 +27,12 @@ mongoose.connect(
   }
 );
 
+//if time is 00:00:00, run dailyUpdate
+const time = new Date();
+if (time.getHours() === 0 && time.getMinutes() === 0 && time.getSeconds() === 0) {
+  dailyUpdate();
+}
+
+//every day run this funciton once at 00:00:00
 app.use("/users", require('./routes/userRouter'));
 app.use("/products", require('./routes/productRouter'));

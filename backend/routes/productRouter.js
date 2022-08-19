@@ -93,7 +93,7 @@ router.post("/sold", (req, res) => {
             connection.query(sql, inserts, (err, result) => {
                 if (err) reject(err);
                 else {
-                    var sql = `UPDATE history SET sold = sold + ? WHERE products_name = ?`;
+                    var sql = `UPDATE history SET sold = sold + ? WHERE products_name = ? AND date = CURRENT_DATE`;
                     var inserts = [sold, name];
                     connection.query(sql, inserts, (err, result) => {
                         if (err) reject(err);
@@ -119,7 +119,7 @@ router.post("/received", (req, res) => {
             connection.query(sql, inserts, (err, result) => {
                 if (err) reject(err);
                 else {
-                    var sql = `UPDATE history SET received = received + ? WHERE products_name = ?`;
+                    var sql = `UPDATE history SET received = received + ? WHERE products_name = ? AND date = CURRENT_DATE`;
                     var inserts = [received, name];
                     connection.query(sql, inserts, (err, result) => {
                         if (err) reject(err);
@@ -136,9 +136,9 @@ router.post("/received", (req, res) => {
     });
 })
 
-router.get('/getnull', (req, res) => {
+router.get('/getlow', (req, res) => {
     return new Promise((resolve, reject) => {
-        var sql = `SELECT name, stock, location FROM products WHERE stock < 1`;
+        var sql = `SELECT name, stock, location FROM products WHERE stock < ${process.env.MIN_CHECK}`;
         connection.query(sql, (err, result) => {
             if (err) reject(err);
             else resolve(result);
@@ -205,6 +205,26 @@ router.post('/delete', (req, res) => {
     }).catch(err => {
         res.json(err);
     });
+})
+
+router.post("/setstock", (req, res) => { //need to create database with all changes that a user makes so you can see what user x did or user z
+    return new Promise((resolve, reject) => {
+        for(var i = 0; i < req.body.length; i++) {
+            const { name, stock } = req.body[i];
+            var sql = `UPDATE products SET stock = ? WHERE name = ?`;
+            var inserts = [stock, name];
+            connection.query(sql, inserts, (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            }
+            );
+        }
+        resolve("Success");
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
 })
 
 module.exports = router;
