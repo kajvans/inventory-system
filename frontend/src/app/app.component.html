@@ -1,2 +1,11 @@
 <h1>Hello</h1>
-<app-login></app-login>
+<nav>
+    <a class="button" routerLink="/item" routerLinkActive="activebutton" ariaCurrentWhenActive="page">
+        item
+    </a> |
+    <a class="button" routerLink="/admin" routerLinkActive="activebutton" ariaCurrentWhenActive="page">
+        admin dashboard
+    </a>
+</nav>
+
+<router-outlet></router-outlet>
