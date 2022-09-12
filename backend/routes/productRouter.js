@@ -86,7 +86,7 @@ router.post("/history", (req, res) => {
 //change the stock of multiple products with a for loop
 router.post("/sold", (req, res) => {
     return new Promise((resolve, reject) => {
-        for(var i = 0; i < req.body.length; i++) {
+        for (var i = 0; i < req.body.length; i++) {
             const { name, sold } = req.body[i];
             var sql = `UPDATE products SET stock = stock - ? WHERE name = ?`;
             var inserts = [sold, name];
@@ -112,7 +112,7 @@ router.post("/sold", (req, res) => {
 
 router.post("/received", (req, res) => {
     return new Promise((resolve, reject) => {
-        for(var i = 0; i < req.body.length; i++) {
+        for (var i = 0; i < req.body.length; i++) {
             const { name, received } = req.body[i];
             var sql = `UPDATE products SET stock = stock + ? WHERE name = ?`;
             var inserts = [received, name];
@@ -181,38 +181,53 @@ router.post('/getPrice', (req, res) => {
     })
 })
 
-router.post('/delete', (req, res) => {
+router.post("/setstock" , (req, res) => {
     return new Promise((resolve, reject) => {
-        for(var i = 0; i < req.body.length; i++) {
-            const { name } = req.body[i];
-            var sql = `UPDATE products SET stock = stock - 1 WHERE name = ?`;
+        for (var i = 0; i < req.body.length; i++) {
+            const { name, newStock } = req.body[i];
+            var sql = `SELECT stock FROM products WHERE name = ?`;
             var inserts = [name];
             connection.query(sql, inserts, (err, result) => {
+                const oldStock = result[0].stock;
                 if (err) reject(err);
                 else {
-                    var sql = `UPDATE history SET deleted = deleted + 1 WHERE products_name = ?`;
-                    var inserts = [name];
+                    var sql = `UPDATE products SET stock = ? WHERE name = ?`;
+                    var inserts = [newStock, name];
                     connection.query(sql, inserts, (err, result) => {
                         if (err) reject(err);
-                        else resolve(result);
+                        if(oldStock > newStock){
+                            var sql = `UPDATE history SET deleted = deleted + ? WHERE products_name = ?`;
+                            var inserts = [oldStock - newStock, name];
+                            connection.query(sql, inserts, (err, result) => {
+                                if (err) reject(err);
+                                else resolve(result);
+                            });
+                        }else{
+                            var sql = `UPDATE history SET added = added + ? WHERE products_name = ?`;
+                            var inserts = [newStock - oldStock, name];
+                            connection.query(sql, inserts, (err, result) => {
+                                if (err) reject(err);
+                                else resolve(result);
+                            });
+                        }
                     });
                 }
             });
         }
-    resolve("Success");
+        resolve("Success");
     }).then(result => {
         res.json(result);
     }).catch(err => {
         res.json(err);
-    });
+    })
 })
 
-router.post("/setstock", (req, res) => { //need to create database with all changes that a user makes so you can see what user x did or user z
+router.post("/setexpire", (req, res) => {
     return new Promise((resolve, reject) => {
-        for(var i = 0; i < req.body.length; i++) {
-            const { name, stock } = req.body[i];
-            var sql = `UPDATE products SET stock = ? WHERE name = ?`;
-            var inserts = [stock, name];
+        for (var i = 0; i < req.body.length; i++) {
+            const { name, expire } = req.body[i];
+            var sql = `UPDATE products SET expire = ? WHERE name = ?`;
+            var inserts = [expire, name];
             connection.query(sql, inserts, (err, result) => {
                 if (err) reject(err);
                 else resolve(result);
@@ -220,6 +235,36 @@ router.post("/setstock", (req, res) => { //need to create database with all chan
             );
         }
         resolve("Success");
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.get("/userchanges", (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = "SELECT `change`, user,DATE_FORMAT(CURRENT_TIMESTAMP, '%H:%i %d-%m-%y') AS date FROM `change` WHERE products_name = ?";
+        var inserts = [req.query.name];
+        connection.query(sql, inserts, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.get("/userhistory", (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = "SELECT `change`, products_name AS procuct, DATE_FORMAT(CURRENT_TIMESTAMP, '%H:%i %d-%m-%y') AS date FROM `change` WHERE user = ?";
+        var inserts = [req.query.user];
+        connection.query(sql, inserts, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
     }).then(result => {
         res.json(result);
     }).catch(err => {

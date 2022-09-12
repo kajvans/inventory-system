@@ -33,6 +33,5 @@ if (time.getHours() === 0 && time.getMinutes() === 0 && time.getSeconds() === 0)
   dailyUpdate();
 }
 
-//every day run this funciton once at 00:00:00
 app.use("/users", require('./routes/userRouter'));
 app.use("/products", require('./routes/productRouter'));

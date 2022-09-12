@@ -18,13 +18,13 @@ router.post("/register", async (req, res) => {
     if (!user) return res.json("not logged in");
 
     if (!user.isAdmin) {res.status(401).json({msg: "Admin privileges required"}); return;}
-      const { id, password, passwordCheck } = req.body;
+      const { id, name, password, passwordCheck } = req.body;
 
       // validate
       // status code 400 means bad request
       // status code 500 means internal server error
 
-      if (!id || !password || !passwordCheck) {
+      if (!id || !name || !password || !passwordCheck) {
         return res.status(400).json({ msg: "Not all fields have been entered" });
       }
 
@@ -49,6 +49,7 @@ router.post("/register", async (req, res) => {
       // creating out new user notice password value is passwordHash not password
       const newUser = new User({
         id: id,
+        name: name,
         password: passwordHash,
       });
       const savedUser = await newUser.save();
@@ -70,13 +71,14 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ msg: "Not all fields have been entered" });
     }
 
-    // checking email that was entered and comparing email in our database
+    // checking id that was entered and comparing id in our database
     const user = await User.findOne({ id: id });
     if (!user) {
       return res
         .status(400)
         .json({ msg: "Invalid credentails" });
     }
+
 
     // Checking password entered and comparing with hashed password in database
     const isMatch = await bcrypt.compare(password, user.password);
@@ -91,6 +93,7 @@ router.post("/login", async (req, res) => {
       user: {
         _id: user._id,
         id: user.id,
+        name: user.name,
         admin: user.isAdmin
       },
     });
@@ -158,8 +161,7 @@ router.post("/isAdmin", async (req, res) => {
 router.get("/", auth, async (req, res) => {
   const user = await User.findById(req.user)
   res.json({
-    firstName: user.firstName,
-    lastName: user.lastName,
+    firstName: user.name,
     id: user._id,
   })
 });
