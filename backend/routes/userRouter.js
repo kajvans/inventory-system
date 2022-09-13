@@ -94,7 +94,7 @@ router.post("/login", async (req, res) => {
         _id: user._id,
         id: user.id,
         name: user.name,
-        admin: user.isAdmin
+        APIkey: user.APIkey,
       },
     });
   } catch (error) {
@@ -135,23 +135,6 @@ router.post("/tokenIsValid", async (req, res) => {
     if (!user) return res.json(false);
 
     return res.json(true);
-  } catch (error) {
-    res.status(500).json({ err: error.message });
-  }
-});
-
-router.post("/isAdmin", async (req, res) => {
-  try {
-    const token = req.header("x-auth-token");
-    if (!token) return res.json(false);
-
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    if (!verified) return res.json(false);
-
-    const user = await User.findById(verified.id);
-    if (!user) return res.json(false);
-
-    return res.json(user.isAdmin);
   } catch (error) {
     res.status(500).json({ err: error.message });
   }

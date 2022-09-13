@@ -166,7 +166,7 @@ router.get('/getexpire', (req, res) => {
     })
 })
 
-router.post('/getPrice', (req, res) => {
+router.post('/getprice', (req, res) => {
     return new Promise((resolve, reject) => {
         var sql = `SELECT price FROM products WHERE name = ?`;
         var inserts = [req.body.name];
