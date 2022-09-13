@@ -44,26 +44,42 @@ const authAPI = (req, res, next) => {
     }
     req.user = verified.id;
     //get the route the user is trying to access
-    const route = req.originalUrl;
+    const route = req.originalUrl.toLowerCase();
     
     //get api key from jws token
     const APIkey = verified.APIkey;
 
     //check if the user can acces the route with the api key
     switch (route) {
-      case "/products/search" || "/products/select" || "/products/history" || "/products/getlow" || "/products/getexpire" || "/products/getprice":
+      case "/products/search":
+      case "/products/select":
+      case "/products/history":
+      case "/products/getlow":
+      case "/products/getexpire":
+      case "/products/getprice":
         if (APIkey === process.env.API_KEY_VIEW || APIkey === process.env.API_KEY_ADMIN || APIkey === process.env.API_KEY_EDIT) {
           next();
         }
         break;
-      case "/products/setstock" || "/products/setexpire" || "/products/sold" || "/products/received":
+        
+      case "/products/setstock":
+      case "/products/setexpire":
+      case "/products/sold":
+      case "/products/received":
         if (APIkey === process.env.API_KEY_EDIT || APIkey === process.env.API_KEY_ADMIN) {
           next();
         }
         break;
 
-      case "/products/userchanges" || "/products/userhistory":
+      case "/products/userchanges":
+      case "/products/userhistory":
         if (APIkey === process.env.API_KEY_ADMIN) {
+          next();
+        }
+        break;
+
+      case "/products/setprice":
+        if (APIkey === process.env.API_KEY_MANAGER) {
           next();
         }
         break;

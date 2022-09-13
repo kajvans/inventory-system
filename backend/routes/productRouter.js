@@ -15,6 +15,9 @@ connection.connect(function (err) {
     console.log("Connected!");
 });
 
+
+//////////////////////////////////////// VIEW PERMISSIONS ////////////////////////////////////////
+
 router.post("/search", (req, res) => {
     const { name } = req.body;
     return new Promise((resolve, reject) => {
@@ -83,7 +86,51 @@ router.post("/history", (req, res) => {
     });
 })
 
-//change the stock of multiple products with a for loop
+router.get('/getlow', (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT name, stock, location FROM products WHERE stock < ${process.env.MIN_CHECK}`;
+        connection.query(sql, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.get('/getexpire', (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT name, expire FROM products WHERE expire < DATE_ADD(CURDATE(),INTERVAL ${process.env.EXPIRE} DAY)`;
+        connection.query(sql, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+router.post('/getprice', (req, res) => {
+    return new Promise((resolve, reject) => {
+        var sql = `SELECT price FROM products WHERE name = ?`;
+        var inserts = [req.body.name];
+        connection.query(sql, inserts, (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+        });
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
+//////////////////////////////////////// EDIT PERMISSIONS ////////////////////////////////////////
+
 router.post("/sold", (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
@@ -136,52 +183,7 @@ router.post("/received", (req, res) => {
     });
 })
 
-router.get('/getlow', (req, res) => {
-    return new Promise((resolve, reject) => {
-        var sql = `SELECT name, stock, location FROM products WHERE stock < ${process.env.MIN_CHECK}`;
-        connection.query(sql, (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-        }
-        );
-    }).then(result => {
-        res.json(result);
-    }).catch(err => {
-        res.json(err);
-    })
-})
-
-router.get('/getexpire', (req, res) => {
-    return new Promise((resolve, reject) => {
-        var sql = `SELECT name, expire FROM products WHERE expire < DATE_ADD(CURDATE(),INTERVAL ${process.env.EXPIRE} DAY)`;
-        connection.query(sql, (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-        }
-        );
-    }).then(result => {
-        res.json(result);
-    }).catch(err => {
-        res.json(err);
-    })
-})
-
-router.post('/getprice', (req, res) => {
-    return new Promise((resolve, reject) => {
-        var sql = `SELECT price FROM products WHERE name = ?`;
-        var inserts = [req.body.name];
-        connection.query(sql, inserts, (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-        });
-    }).then(result => {
-        res.json(result);
-    }).catch(err => {
-        res.json(err);
-    })
-})
-
-router.post("/setstock" , (req, res) => {
+router.post("/setstock", (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
             const { name, newStock } = req.body[i];
@@ -195,14 +197,14 @@ router.post("/setstock" , (req, res) => {
                     var inserts = [newStock, name];
                     connection.query(sql, inserts, (err, result) => {
                         if (err) reject(err);
-                        if(oldStock > newStock){
+                        if (oldStock > newStock) {
                             var sql = `UPDATE history SET deleted = deleted + ? WHERE products_name = ?`;
                             var inserts = [oldStock - newStock, name];
                             connection.query(sql, inserts, (err, result) => {
                                 if (err) reject(err);
                                 else resolve(result);
                             });
-                        }else{
+                        } else {
                             var sql = `UPDATE history SET added = added + ? WHERE products_name = ?`;
                             var inserts = [newStock - oldStock, name];
                             connection.query(sql, inserts, (err, result) => {
@@ -231,8 +233,7 @@ router.post("/setexpire", (req, res) => {
             connection.query(sql, inserts, (err, result) => {
                 if (err) reject(err);
                 else resolve(result);
-            }
-            );
+            });
         }
         resolve("Success");
     }).then(result => {
@@ -241,6 +242,8 @@ router.post("/setexpire", (req, res) => {
         res.json(err);
     })
 })
+
+//////////////////////////////////////// ADMIN PERMISSIONS ////////////////////////////////////////
 
 router.get("/userchanges", (req, res) => {
     return new Promise((resolve, reject) => {
@@ -271,5 +274,27 @@ router.get("/userhistory", (req, res) => {
         res.json(err);
     })
 })
+
+//////////////////////////////////////// MANAGER PERMISSIONS ////////////////////////////////////////
+
+router.post("/setprice", (req, res) => {
+    return new Promise((resolve, reject) => {
+        for (var i = 0; i < req.body.length; i++) {
+            const { name, price } = req.body[i];
+            var sql = `UPDATE products SET price = ? WHERE name = ?`;
+            var inserts = [price, name];
+            connection.query(sql, inserts, (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        }
+        resolve("Success");
+    }).then(result => {
+        res.json(result);
+    }).catch(err => {
+        res.json(err);
+    })
+})
+
 
 module.exports = router;
