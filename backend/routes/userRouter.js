@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const auth = require("../middleware/auth");
 
+//make this to mysql because of relations between tables
+
 // Register route
 router.post("/register", async (req, res) => {
   try {
