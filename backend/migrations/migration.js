@@ -10,4 +10,4 @@ const connection = mysql.createPool({
     database: process.env.DB_NAME,
 });
 
-migration.init(connection, __dirname + '/migrations');
+migration.init(connection, __dirname + '/');
