@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon ./backend/index.js"
+    "start": "nodemon ./backend/index.js",
+    "add_migration": "node backend/migrations/migration.js add migration",
+    "run_migration": "node backend/migrations/migration.js up"
   },
   "author": "",
   "license": "ISC",
