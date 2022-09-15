@@ -1,3 +1,4 @@
+import require_permission, {PERMISSION_TYPE_READ} from "./middleware/require_permission";
 const express = require("express");
 const dailyUpdate = require("./dailyUpdate");
 const mongoose = require("mongoose");
@@ -34,4 +35,4 @@ if (time.getHours() === 0 && time.getMinutes() === 0 && time.getSeconds() === 0)
 }
 
 app.use("/users", require('./routes/userRouter'));
-app.use("/products", require('./routes/productRouter'));
+app.use("/products", require_permission({entity: "product", permissionType: PERMISSION_TYPE_READ}), require('./routes/productRouter'));
