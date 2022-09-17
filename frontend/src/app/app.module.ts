@@ -9,6 +9,9 @@ import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard.compo
 import { ItemComponent } from './item/item.component';
 import { ItemListComponent } from './item-list/item-list.component';
 import { PageNotFoundComponent } from './page-not-found/page-not-found.component';
+import { AdminUsersComponent } from './admin-users/admin-users.component';
+import { UserEditComponent } from './user-edit/user-edit.component';
+
 
 @NgModule({
   declarations: [
@@ -18,6 +21,8 @@ import { PageNotFoundComponent } from './page-not-found/page-not-found.component
     ItemComponent,
     ItemListComponent,
     PageNotFoundComponent,
+    AdminUsersComponent,
+    UserEditComponent,
   ],
   imports: [
     BrowserModule,
@@ -25,7 +30,9 @@ import { PageNotFoundComponent } from './page-not-found/page-not-found.component
     RouterModule.forRoot([
       { path: '', component: LoginComponent },
       { path: 'login', component: LoginComponent },
-      { path: 'admin', component: AdminDashboardComponent },
+      { path: 'admin', component: AdminDashboardComponent},
+      { path: 'admin/users', component: AdminUsersComponent },
+      { path: 'admin/user/:id', component: UserEditComponent },
       { path: 'item', component: ItemComponent },
       { path: 'item-list', component: ItemListComponent },
       { path: '**', component: PageNotFoundComponent },

@@ -1,0 +1,32 @@
+<!---
+create a dynamic table to display the users for angular framework
+---->
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Users</h2>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Name</th>
+                        <th>permissions</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let user of users">
+                        <td>{{user.id}}</td>
+                        <td>{{user.name}}</td>
+                        <td>{{user.permissions}}</td>
+                        <td>
+                            <a [routerLink]="['/admin/user', user.id]" class="btn btn-sm btn-primary">Edit</a>
+                            <!--<a (click)="deleteUser(user.id)" class="btn btn-sm btn-danger">Delete</a> -->
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
