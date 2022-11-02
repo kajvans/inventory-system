@@ -1,27 +1,17 @@
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth");
-const mysql = require("mysql");
+const permAuth = require("../middleware/PermAuth");
+const config = require("../databaseConfig");
 
-var connection = mysql.createConnection({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-});
-
-connection.connect(function (err) {
-    if (err) return console.log(err);
-    console.log("Connected!");
-});
-
+var connection = config.connection
 
 //////////////////////////////////////// VIEW PERMISSIONS ////////////////////////////////////////
 
-router.post("/search", (req, res) => {
+router.post("/search", permAuth(1), (req, res) => {
     const { name } = req.body;
     return new Promise((resolve, reject) => {
-        var sql = `SELECT name, price FROM products WHERE name LIKE ?`;
+        var sql = `SELECT name, price, img FROM products WHERE name LIKE ?`;
         connection.query(sql, ["%" + name + "%"], (err, result) => {
             if (err) reject(err);
             else if (result.length === 0) reject("No results found");
@@ -31,7 +21,7 @@ router.post("/search", (req, res) => {
     }).then(result => {
         if (result.length === 1) {
             return new Promise((resolve, reject) => {
-                var sql = `SELECT products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire, history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date FROM products INNER JOIN history ON history.products_name = products.name WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
+                var sql = `SELECT products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire, history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.img FROM products INNER JOIN history ON history.products_name = products.name WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
                 var inserts = [name];
                 connection.query(sql, inserts, (err, result) => {
                     if (err) reject(err);
@@ -52,10 +42,10 @@ router.post("/search", (req, res) => {
     });
 })
 
-router.post("/select", (req, res) => {
+router.post("/select", permAuth(1), (req, res) => {
     const { name } = req.body;
     return new Promise((resolve, reject) => {
-        var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire FROM products INNER JOIN history ON history.products_name = products.name WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
+        var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date, products.name AS name, products.price AS price, products.stock AS stock, products.barcode AS barcode, products.category AS category, products.location AS location, products.expire AS expire, sale.week(date, 2) FROM products INNER JOIN history ON history.products_name = products.name INNER JOIN products.name ON sale.products_name WHERE name = ? ORDER BY history.date DESC LIMIT 1`;
         var inserts = [name];
         connection.query(sql, inserts, (err, result) => {
             if (err) reject(err);
@@ -69,7 +59,7 @@ router.post("/select", (req, res) => {
     });
 })
 
-router.post("/history", (req, res) => {
+router.post("/history", permAuth(1), (req, res) => {
     const { search } = req.body;
     return new Promise((resolve, reject) => {
         var sql = `SELECT history.sold AS sold, history.received AS received, history.deleted AS deleted, DATE_FORMAT(history.date, '%e/%c/%Y') AS date FROM history INNER JOIN products ON history.products_name = products.name WHERE name = ? ORDER BY history.date DESC`;
@@ -86,7 +76,7 @@ router.post("/history", (req, res) => {
     });
 })
 
-router.get('/getlow', (req, res) => {
+router.get('/getlow', permAuth(1), (req, res) => {
     return new Promise((resolve, reject) => {
         var sql = `SELECT name, stock, location FROM products WHERE stock < ${process.env.MIN_CHECK}`;
         connection.query(sql, (err, result) => {
@@ -100,7 +90,7 @@ router.get('/getlow', (req, res) => {
     })
 })
 
-router.get('/getexpire', (req, res) => {
+router.get('/getexpire', permAuth(1), (req, res) => {
     return new Promise((resolve, reject) => {
         var sql = `SELECT name, expire FROM products WHERE expire < DATE_ADD(CURDATE(),INTERVAL ${process.env.EXPIRE} DAY)`;
         connection.query(sql, (err, result) => {
@@ -114,7 +104,7 @@ router.get('/getexpire', (req, res) => {
     })
 })
 
-router.post('/getprice', (req, res) => {
+router.post('/getprice', permAuth(1), (req, res) => {
     return new Promise((resolve, reject) => {
         var sql = `SELECT price FROM products WHERE name = ?`;
         var inserts = [req.body.name];
@@ -131,7 +121,7 @@ router.post('/getprice', (req, res) => {
 
 //////////////////////////////////////// EDIT PERMISSIONS ////////////////////////////////////////
 
-router.post("/sold", (req, res) => {
+router.post("/sold", permAuth(9), (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
             const { name, sold } = req.body[i];
@@ -144,7 +134,14 @@ router.post("/sold", (req, res) => {
                     var inserts = [sold, name];
                     connection.query(sql, inserts, (err, result) => {
                         if (err) reject(err);
-                        else resolve(result);
+                        else {
+                            var sql = `INSERT INTO change (products_name, User_UserId, detail, timestamp) VALUES (?, ?, ?, ?, CURRENT_DATE)`;
+                            var inserts = [name, req.user.UserId, "Sold " + sold, req.user.username];
+                            connection.query(sql, inserts, (err, result) => {
+                                if (err) reject(err);
+                                else resolve(result);
+                            });
+                        }
                     });
                 }
             });
@@ -157,7 +154,7 @@ router.post("/sold", (req, res) => {
     });
 })
 
-router.post("/received", (req, res) => {
+router.post("/received", permAuth(9), (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
             const { name, received } = req.body[i];
@@ -170,7 +167,14 @@ router.post("/received", (req, res) => {
                     var inserts = [received, name];
                     connection.query(sql, inserts, (err, result) => {
                         if (err) reject(err);
-                        else resolve(result);
+                        else {
+                            var sql = `INSERT INTO change (products_name, User_UserId, detail, timestamp) VALUES (?, ?, ?, ?, CURRENT_DATE)`;
+                            var inserts = [name, req.user.UserId, "Received " + received, req.user.username];
+                            connection.query(sql, inserts, (err, result) => {
+                                if (err) reject(err);
+                                else resolve(result);
+                            });
+                        }
                     });
                 }
             });
@@ -183,7 +187,7 @@ router.post("/received", (req, res) => {
     });
 })
 
-router.post("/setstock", (req, res) => {
+router.post("/setstock", permAuth(8), (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
             const { name, newStock } = req.body[i];
@@ -202,14 +206,28 @@ router.post("/setstock", (req, res) => {
                             var inserts = [oldStock - newStock, name];
                             connection.query(sql, inserts, (err, result) => {
                                 if (err) reject(err);
-                                else resolve(result);
+                                else {
+                                    var sql = `INSERT INTO change (products_name, User_UserId, detail, timestamp) VALUES (?, ?, ?, ?, CURRENT_DATE)`;
+                                    var inserts = [name, req.user.UserId, "Deleted " + (oldStock - newStock), req.user.username];
+                                    connection.query(sql, inserts, (err, result) => {
+                                        if (err) reject(err);
+                                        else resolve(result);
+                                    });
+                                }
                             });
                         } else {
                             var sql = `UPDATE history SET added = added + ? WHERE products_name = ?`;
                             var inserts = [newStock - oldStock, name];
                             connection.query(sql, inserts, (err, result) => {
                                 if (err) reject(err);
-                                else resolve(result);
+                                else {
+                                    var sql = `INSERT INTO change (products_name, User_UserId, detail, timestamp) VALUES (?, ?, ?, ?, CURRENT_DATE)`;
+                                    var inserts = [name, req.user.UserId, "Added " + (newStock - oldStock), req.user.username];
+                                    connection.query(sql, inserts, (err, result) => {
+                                        if (err) reject(err);
+                                        else resolve(result);
+                                    });
+                                }
                             });
                         }
                     });
@@ -224,7 +242,7 @@ router.post("/setstock", (req, res) => {
     })
 })
 
-router.post("/setexpire", (req, res) => {
+router.post("/setexpire", permAuth(8), (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
             const { name, expire } = req.body[i];
@@ -232,7 +250,14 @@ router.post("/setexpire", (req, res) => {
             var inserts = [expire, name];
             connection.query(sql, inserts, (err, result) => {
                 if (err) reject(err);
-                else resolve(result);
+                else {
+                    var sql = `INSERT INTO change (products_name, User_UserId, detail, timestamp) VALUES (?, ?, ?, ?, CURRENT_DATE)`;
+                    var inserts = [name, req.user.UserId, "Set expire date to " + expire, req.user.username];
+                    connection.query(sql, inserts, (err, result) => {
+                        if (err) reject(err);
+                        else resolve(result);
+                    });
+                }
             });
         }
         resolve("Success");
@@ -245,9 +270,9 @@ router.post("/setexpire", (req, res) => {
 
 //////////////////////////////////////// ADMIN PERMISSIONS ////////////////////////////////////////
 
-router.get("/userchanges", (req, res) => {
+router.get("/userchanges", permAuth(8), (req, res) => {
     return new Promise((resolve, reject) => {
-        var sql = "SELECT `change`, user,DATE_FORMAT(CURRENT_TIMESTAMP, '%H:%i %d-%m-%y') AS date FROM `change` WHERE products_name = ?";
+        var sql = "SELECT `detail`, user,DATE_FORMAT(CURRENT_TIMESTAMP, '%H:%i %d-%m-%y') AS date, User_UserId FROM `change` WHERE products_name = ?";
         var inserts = [req.query.name];
         connection.query(sql, inserts, (err, result) => {
             if (err) reject(err);
@@ -260,9 +285,9 @@ router.get("/userchanges", (req, res) => {
     })
 })
 
-router.get("/userhistory", (req, res) => {
+router.get("/userhistory", permAuth(10), (req, res) => {
     return new Promise((resolve, reject) => {
-        var sql = "SELECT `change`, products_name AS procuct, DATE_FORMAT(CURRENT_TIMESTAMP, '%H:%i %d-%m-%y') AS date FROM `change` WHERE user = ?";
+        var sql = "SELECT `detail`, products_name AS procuct, DATE_FORMAT(CURRENT_TIMESTAMP, '%H:%i %d-%m-%y') AS date FROM `change` WHERE User_userId = ?";
         var inserts = [req.query.user];
         connection.query(sql, inserts, (err, result) => {
             if (err) reject(err);
@@ -277,7 +302,7 @@ router.get("/userhistory", (req, res) => {
 
 //////////////////////////////////////// MANAGER PERMISSIONS ////////////////////////////////////////
 
-router.post("/setprice", (req, res) => {
+router.post("/setprice", permAuth(10), (req, res) => {
     return new Promise((resolve, reject) => {
         for (var i = 0; i < req.body.length; i++) {
             const { name, price } = req.body[i];
@@ -285,7 +310,14 @@ router.post("/setprice", (req, res) => {
             var inserts = [price, name];
             connection.query(sql, inserts, (err, result) => {
                 if (err) reject(err);
-                else resolve(result);
+                else {
+                    var sql = `INSERT INTO change (products_name, User_UserId, detail, timestamp) VALUES (?, ?, ?, ?, CURRENT_DATE)`;
+                    var inserts = [name, req.user.UserId, "Set price to " + price, req.user.username];
+                    connection.query(sql, inserts, (err, result) => {
+                        if (err) reject(err);
+                        else resolve(result);
+                    });
+                }
             });
         }
         resolve("Success");
@@ -296,5 +328,12 @@ router.post("/setprice", (req, res) => {
     })
 })
 
+router.get("/test", permAuth(10), (req, res) => {
+    //respond with UserId and Perms
+    res.json({
+        id: req.UserId,
+        perms: req.Perms
+    });
+})
 
 module.exports = router;

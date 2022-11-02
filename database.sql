@@ -39,24 +39,43 @@ DEFAULT CHARACTER SET = utf8;
 
 
 -- -----------------------------------------------------
+-- Table `inventory`.`User`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `inventory`.`User` (
+  `UserId` VARCHAR(45) NOT NULL,
+  `name` VARCHAR(45) NOT NULL,
+  `password` VARCHAR(45) NOT NULL,
+  `Email` VARCHAR(45) NOT NULL,
+  `Perms` INT NOT NULL,
+  PRIMARY KEY (`UserId`),
+  UNIQUE INDEX `UserId_UNIQUE` (`UserId` ASC))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
 -- Table `inventory`.`change`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `inventory`.`change` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `change` VARCHAR(45) NULL DEFAULT NULL,
-  `user` VARCHAR(45) NULL DEFAULT NULL,
-  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
   `products_name` VARCHAR(45) NOT NULL,
-  PRIMARY KEY (`id`, `products_name`),
+  `User_UserId` VARCHAR(45) NOT NULL,
+  `detail` VARCHAR(45) NULL,
+  `timestamp` TIMESTAMP NULL,
+  PRIMARY KEY (`id`, `products_name`, `User_UserId`),
   UNIQUE INDEX `id_UNIQUE` (`id` ASC),
   INDEX `fk_change_products1_idx` (`products_name` ASC),
+  INDEX `fk_change_User1_idx` (`User_UserId` ASC),
   CONSTRAINT `fk_change_products1`
     FOREIGN KEY (`products_name`)
     REFERENCES `inventory`.`products` (`name`)
     ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_change_User1`
+    FOREIGN KEY (`User_UserId`)
+    REFERENCES `inventory`.`User` (`UserId`)
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
-AUTO_INCREMENT = 7
 DEFAULT CHARACTER SET = utf8;
 
 
@@ -65,10 +84,9 @@ DEFAULT CHARACTER SET = utf8;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `inventory`.`history` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `received` VARCHAR(45) NULL DEFAULT '0',
-  `sold` VARCHAR(45) NULL DEFAULT '0',
-  `deleted` VARCHAR(45) NULL DEFAULT '0',
-  `added` INT(11) NOT NULL DEFAULT 0,
+  `received` VARCHAR(45) NULL DEFAULT NULL,
+  `sold` VARCHAR(45) NULL DEFAULT NULL,
+  `deleted` VARCHAR(45) NULL DEFAULT NULL,
   `date` DATE NULL DEFAULT CURRENT_TIMESTAMP(),
   `products_name` VARCHAR(45) NOT NULL,
   PRIMARY KEY (`id`, `products_name`),
@@ -80,8 +98,25 @@ CREATE TABLE IF NOT EXISTS `inventory`.`history` (
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
-AUTO_INCREMENT = 38
+AUTO_INCREMENT = 35
 DEFAULT CHARACTER SET = utf8;
+
+
+-- -----------------------------------------------------
+-- Table `inventory`.`Sale`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `inventory`.`Sale` (
+  `products_name` VARCHAR(45) NOT NULL,
+  `week` INT NOT NULL,
+  `condition` INT NULL,
+  `new price` INT NULL,
+  PRIMARY KEY (`products_name`),
+  CONSTRAINT `fk_Sale_products1`
+    FOREIGN KEY (`products_name`)
+    REFERENCES `inventory`.`products` (`name`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
